@@ -1,0 +1,144 @@
+#name "видео"
+
+$video = inputbox("Введите поисковый запрос", "Купити Бактерицидный светильник", 4000)
+$art = inputbox("Введите артикул", "Распаковка бактерицидного светильника.", 4000)
+$time = inputbox("Введите длительность видео в секундах (1 мин = 60сек,  2мин = 120сек)", "80", 4000)
+$play_count = inputbox("Сколько раз просмотреть видео?", "100", 4000)
+
+
+//====================подпрограмма для имитации плавного передвижения мышки=========================
+SUB(mouse_move,$MOVE_END_X,$MOVE_END_Y)
+
+   $MOVE_SPEED = 1  // множитель скорости (отвечает за количество точек)
+ 
+   $MOVE_Start_X = $_xmouse
+   $MOVE_Start_Y = $_ymouse
+   $MOVE_X = $MOVE_Start_X
+   $MOVE_Y = $MOVE_Start_Y
+ 
+   $dist = DIST($MOVE_END_X,$MOVE_END_Y,$MOVE_Start_X,$MOVE_Start_Y)
+ 
+   $MOVE_SPEEDVAR = INT((SQRT($dist))/$MOVE_SPEED)
+ 
+   IF($MOVE_SPEEDVAR < 1)
+      $MOVE_SPEEDVAR = 1
+   END_IF
+ 
+   $MOVE_step=($dist-1)/$MOVE_SPEEDVAR
+   $MOVE_X_step = ($MOVE_END_X-$MOVE_Start_X)/$MOVE_step
+   $MOVE_Y_step = ($MOVE_END_Y-$MOVE_Start_Y)/$MOVE_step
+ 
+   FOR($MOVE_i=0, $MOVE_i<INT($MOVE_step))
+      $MOVE_X = $MOVE_X + $MOVE_X_step
+      $MOVE_Y = $MOVE_Y + $MOVE_Y_step
+      MOVE(ROUND($MOVE_X,0)+RND(-2,2), ROUND($MOVE_Y,0)+RND(-2,2)) // добавляем рандом
+      WAITMS($rnwait) // задержка при движении по точкам
+   END_CYC
+ 
+END_SUB
+ 
+SUB(m_move,$M_X,$M_Y)
+   $rnwait = RND(6,15) // случайная скорость
+   $MOVE_MID_X = ($_xmouse+$M_X)/2
+   $MOVE_MID_Y = ($_ymouse+$M_Y)/2
+   mouse_move($MOVE_MID_X+RND(-30,30),$MOVE_MID_Y+RND(-30,30))
+   mouse_move($M_X,$M_Y)
+   MOVE($M_X,$M_Y)		//Передвинуть окончательно в заданную точку
+END_SUB
+
+//====================подпрограмма рандомные движения=========================
+$step_time = 0
+SUB(rnd_move)
+m_move(RND(112,1372),RND(156,808))
+
+$timeout_min = 1
+$timeout_max = 10
+$timeout_move = RND($timeout_min,$timeout_max) 
+WAIT($timeout_move)
+
+INC($step_time, $timeout_move) //======= потраченное время
+LOGWRITE (INT($timeout_move))
+END_SUB   
+ 
+
+$MS = $_ms // засекаем время
+
+//====================подпрограмма просмотра видео=========================
+SUB(youtube_watch)
+
+EXECUTE("chrome.exe", "https://www.youtube.com/")
+WAIT(5) // задержка на загрузку окна
+
+
+m_move(510,96)   //координаты окна поиска ютуб
+WAIT(1)
+LCLICK(510,96)
+
+$hwnd1 = wndfind("Clickermann -") // получаем HWND окна кликера
+$hwnd2 = wndfind("- Google Chrome") // получаем HWND окна Блокнота
+
+
+SETKBLAYOUT($hwnd1, 1058) // устанавливаем русскую раскладку для окон 1049 а раскладка укр 1058
+SETKBLAYOUT($hwnd2, 1058)
+
+KEYSTRING($video, 20)//Вводим текст. 20 означает задержку в 20 мс между вводом каждой буквы
+KEYPRESS(#ENTER)//Нажимаем Enter чтобы перевести строку. #ENTER - код клавиши Enter
+WAIT(RND(1,2))
+
+KEYDOWN(#CTRL)        // ctrl+F вызываем
+KEYPRESS(#F)
+KEYUP(#CTRL)
+WAIT(RND(1,3))
+
+m_move(930,91)     // курсор в поле ввода ctrl+F 
+WAIT(1)
+LCLICK(930,91) 
+WAIT(RND(1,2))
+
+KEYDOWN(#CTRL)          // ctrl+A обнуляем  ввод
+KEYPRESS(#A)
+KEYUP(#CTRL)
+WAIT(RND(1,2))
+
+//SETKBLAYOUT($hwnd1, 1033) // устанавливаем английскую раскладку для окон 1033
+//SETKBLAYOUT($hwnd2, 1033)    
+
+KEYSTRING($art, 20)//Вводим текст. 20 означает задержку в 20 мс между вводом каждой буквы
+KEYPRESS(#ENTER)//Нажимаем Enter чтобы перевести строку. #ENTER - код клавиши Enter
+WAIT(RND(1,2))
+
+$c = colorgen(255, 150, 50)
+
+GETSCREEN // Clickermann помещает в свой графический буфер скриншот вашего экранаgetscreen             
+// поиск пикселя
+IF_PIXEL_IN (492,132, 1235,975, $c)  
+m_move($_return1,$_return2)
+WAIT(1)
+LCLICK($_return1,$_return2)
+END_IF
+
+
+
+//=================цикл рандомных кликов со счетчиком шагов============================
+
+$rnd_count_move = RND(1,5)  // количество рандомных движений  ( ВАЖНО! чтобы закрывать окно после просмотра - сумма времени потраченного на движения мышки должна быть меньше длительности видео )
+FOR($i, $i < $rnd_count_move) 
+rnd_move()  // вызов подпрограммы рандомных движений
+END_CYC
+
+LOGWRITE (INT($step_time) "потраченное время на движение") //======= потраченное время  в консоль
+
+
+WAIT(($time - $step_time) + RND(1,5)) // добавляем время потраченое на движение мышкой + рандом от 1 до 5 сек
+ 
+END_SUB 
+
+
+
+FOR($o, $o < $play_count) 
+youtube_watch()  // вызов подпрограммы просмотра
+SENDMESSAGE(WNDFIND("- Google Chrome",0),0x0010,0,0)    // закрыть браузер
+WAIT(RND(15,30))
+END_CYC
+
+HALT
